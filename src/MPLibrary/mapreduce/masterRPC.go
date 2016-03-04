@@ -11,20 +11,33 @@ import (
 
 //this a rpc method which will be called by workers to notify master that they have 
 //been ready
-func (master *Master) register(args *RegisterArgs,_*struct{}) error{
+func (master *Master) Register(args *RegisterArgs,_*struct{}) error{
 	master.m.Lock()
 	defer master.m.Unlock()
 	fmt.Printf("Worker %s has registed\n",args.addr)
-	// use new thread to add to channel ? if the channel is full may block?
+	// use new thread to add to channel ,if the channel is full may block
 	//it may delay the response speed, thus we'd better use a new thread
+	master.workers = append(master.workers,args.addr)
 	go func(){
 		master.registerChannel<-args.addr 
 	}()
 	return nil
 
 }
-
-
+//Master call this function to terminate all workers
+func (master * Master) terminateWorkers() {
+	master.nTasks = make([]int , 0, len(master.workers))
+	for_,w:= range master.workers{
+		var reply ShutdownReply
+		ok := rpcCall(w,"Worker.ShutDown",new(struct{}),&reply)
+		if ok == false{
+			fmt.Printf("Worker %s shutdown failed",w)
+		}else{
+			master.nTasks = append(master.nTasks,reply.nTasks)
+		}
+	}
+	return
+}
 
 // master node start the server for listening to RPC calls from workers
 func (master *Master) startRPCServer(){
@@ -60,5 +73,7 @@ func (master *Master) startRPCServer(){
 }
 // stop rpc server when jobs have been completed
 func (master *Master) stopRPCServer(){
-
+	//TODO: how to stop the rpc server without race condition
+	//since the server thread is different with current thread
+	//Solution:send a shutdown rpc call to server, then let server thread close the server by itself
 }

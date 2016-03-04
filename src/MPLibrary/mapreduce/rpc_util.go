@@ -11,8 +11,19 @@ import (
 type RegisterArgs struct{
 	addr string
 }
+//argument for shutdown reply which will return the number of tasks this worker has completed
 type ShutdownReply struct{
 	nTasks int
+}
+type TaskArgs struct{
+	jobName string
+	file    string
+	phrase	string	
+	//nio is the number of input or output files, for mapper this is the reduce number
+	//for reducer this is the intermediate file number mapper generated
+	nio 	int 
+	taskIdx	int
+
 }
 
 

@@ -13,11 +13,15 @@ type Master struct{
 	addr 			string
 	registerChannel chan string
 	job             string
+	//keep all workers, used for killing
 	workers 	 	[] string
+	nTasks			[] int
 	listener		net.Listener
 	files 			[]string
 	finished        chan bool
 	nReduce			int
+	phrase			string
+
 }
 
 //create a new master 
@@ -37,7 +41,7 @@ func createNewMaster(addr string) (master *Master){
 // 						all workers to do the reduce jobs.Once all taks have been done, the reducer outputs will be collected 
 // 						and merged. Finally the rpc server will be stopped and workers will be killed
 // 			
-func masterRun(addr string,jobName string,files []string,nReduce int) {
+func MasterRun(addr string,jobName string,files []string,nReduce int) {
 	master := createNewMaster(addr)
 	master.startRPCServer()
 	go master.startWork(jobName,files,nReduce)	
@@ -47,10 +51,13 @@ func masterRun(addr string,jobName string,files []string,nReduce int) {
 func (master *Master) finish(){
 	master.stopRPCServer()
 	//TODO kill all worker server
+	master.terminateWorkers()
 	master.finished<-true
 }
 
-
+func (master *Master) setJobPhrase(phrase string){
+	master.phrase = phrase
+}
 // master will schedule tasks and merge results
 func (master *Master)startWork(job string, files []string, nReduce int){
 	//set up basic job information
@@ -60,7 +67,10 @@ func (master *Master)startWork(job string, files []string, nReduce int){
 
 	//start to schedule jobs
 	fmt.Printf("Starting map/reduce job:%s",job)
-	// master.schedule()	
+	master.setJobPhrase(mapJob)
+	master.schedule()	
+	master.setJobPhrase(reduceJob)
+	master.schedule()
 	// master.merge()
 
 	//finish job
