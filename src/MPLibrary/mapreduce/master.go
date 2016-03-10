@@ -67,10 +67,8 @@ func (master *Master)startWork(job string, files []string, nReduce int){
 
 	//start to schedule jobs
 	fmt.Printf("Starting map/reduce job:%s",job)
-	master.setJobPhrase(mapJob)
-	master.schedule()	
-	master.setJobPhrase(reduceJob)
-	master.schedule()
+	master.schedule(mapJob)	
+	master.schedule(reduceJob)
 	// master.merge()
 
 	//finish job
