@@ -10,7 +10,7 @@ import (
 type Master struct{
 	m sync.Mutex
 
-	addr 			string
+	Addr 			string
 	registerChannel chan string
 	job             string
 	//keep all workers, used for killing
@@ -27,7 +27,7 @@ type Master struct{
 //create a new master 
 func createNewMaster(addr string) (master *Master){
 	master = new(Master)
-	master.addr = addr
+	master.Addr = addr
 	master.registerChannel = make(chan string)
 	master.finished = make(chan bool)
 	// master.shutdown = make(chan struct{})
@@ -41,10 +41,11 @@ func createNewMaster(addr string) (master *Master){
 // 						all workers to do the reduce jobs.Once all taks have been done, the reducer outputs will be collected 
 // 						and merged. Finally the rpc server will be stopped and workers will be killed
 // 			
-func MasterRun(addr string,jobName string,files []string,nReduce int) {
-	master := createNewMaster(addr)
+func MasterRun(addr string,jobName string,files []string,nReduce int) (master *Master){
+	master = createNewMaster(addr)
 	master.startRPCServer()
 	go master.startWork(jobName,files,nReduce)	
+	return 
 }
 
 //clean up routinue for master
@@ -54,7 +55,9 @@ func (master *Master) finish(){
 	master.terminateWorkers()
 	master.finished<-true
 }
-
+func(master *Master) Wait(){
+	<-master.finished
+}
 func (master *Master) setJobPhrase(phrase string){
 	master.phrase = phrase
 }

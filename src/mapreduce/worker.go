@@ -20,15 +20,7 @@ type Worker struct{
 	listener net.Listener
 }
 
-//worker call this function to register himself
-func (worker *Worker)register(masterId string){
-	args := new(RegisterArgs)
-	args.Worker = worker.id
-	ok := rpcCall(masterId,"Master.Register",args,new(struct{]}))
-	if ok == false{
-		fmt.Printf("%s register error\n",worker.id)
-	}
-}
+
 //WorkerRun will make a rpc call register to notify master that it is ready
 //and wait for task
 func WorkerRun(masterId string,workerId string,Mapper func(string,string)[] KeyValue,
@@ -42,7 +34,8 @@ func WorkerRun(masterId string,workerId string,Mapper func(string,string)[] KeyV
 	server := rpc.NewServer()
 	server.Register(worker)
 	os.Remove(workerId)
-	listener, error:= net.Listener("unix",workerId)
+	fmt.Printf("Worker %s started\n",workerId)
+	listener, error:= net.Listen("unix",workerId)
 	if error!=nil{
 		log.Fatal("WorkerRun:worker ",workerId," error ",error)
 
@@ -55,20 +48,20 @@ func WorkerRun(masterId string,workerId string,Mapper func(string,string)[] KeyV
 			worker.m.Unlock()
 			break;
 		}
-		worker.Unlock()
+		worker.m.Unlock()
 		connection,error:=worker.listener.Accept()
-		if errror != nil{
+		if error != nil{
 			break;
 		}
-		worker.Lock()
+		worker.m.Lock()
 		worker.nRPC--
-		worker.Unlock()
+		worker.m.Unlock()
 		//TODO: close connection or not? 
 		go server.ServeConn(connection)	
-		worker.Lock()
+		worker.m.Lock()
 		worker.nTasks++
-		worker.Unlock()
+		worker.m.Unlock()
 	}
-	Worker.listener.Close()
-	fmt.Println("Worker %s exited\n",workerId)
+	worker.listener.Close()
+	fmt.Printf("Worker %s exited\n",workerId)
 }
